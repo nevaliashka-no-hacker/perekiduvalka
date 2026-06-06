@@ -1,0 +1,60 @@
+#include <unoHID.h> // Подключаем основное ядро библиотеки
+
+// Назначение пинов для кнопок
+const int buttonLeftPin = A0;  // Кнопка Левой Кнопки Мыши (ЛКМ) -> на GND
+const int buttonRightPin = A1; // Кнопка Правой Кнопки Мыши (ПКМ) -> на GND
+
+// Переменные для отслеживания состояния кнопок
+bool leftPressed = false;
+bool rightPressed = false;
+
+// Таймеры для скролла
+unsigned long lastScrollTime = 0;
+const int scrollInterval = 100; // Скорость скролла (в миллисекундах)
+
+void setup() {
+  // Настраиваем пины кнопок в режим ввода с подтяжкой к 5V
+  pinMode(buttonLeftPin, INPUT_PULLUP);
+  pinMode(buttonRightPin, INPUT_PULLUP);
+
+  // Инициализация HID-мыши
+  Mouse.begin(); 
+}
+
+void loop() {
+  // В некоторых версиях unoHID требуется постоянный вызов обновления:
+  // unoHID.update(); // Раскомментируйте (уберите //), если мышь не будет реагировать
+
+  // Считываем кнопки (LOW означает, что кнопка физически зажата)
+  leftPressed = (digitalRead(buttonLeftPin) == LOW);
+  rightPressed = (digitalRead(buttonRightPin) == LOW);
+
+  // СЦЕНАРИЙ 1: Нажаты обе кнопки одновременно -> СКРОЛЛ ВВЕРХ
+  if (leftPressed && rightPressed) {
+    if (millis() - lastScrollTime >= scrollInterval) {
+      // Параметры Mouse.move: (смещение_X, смещение_Y, колесико)
+      // Значение 1 — скролл вверх. Если нужно вниз, поменяйте на -1
+      Mouse.move(0, 0, 1); 
+      lastScrollTime = millis();
+    }
+    // Отпускаем обычные клики во время скролла
+    Mouse.release(MOUSE_LEFT);
+    Mouse.release(MOUSE_RIGHT);
+  }
+  
+  // СЦЕНАРИЙ 2: Нажата ТОЛЬКО Левая кнопка
+  else if (leftPressed && !rightPressed) {
+    Mouse.press(MOUSE_LEFT);
+  }
+  
+  // СЦЕНАРИЙ 3: Нажата ТОЛЬКО Правая кнопка
+  else if (!leftPressed && rightPressed) {
+    Mouse.press(MOUSE_RIGHT);
+  }
+  
+  // СЦЕНАРИЙ 4: Ни одна кнопка не нажата -> отпускаем клики
+  else {
+    Mouse.release(MOUSE_LEFT);
+    Mouse.release(MOUSE_RIGHT);
+  }
+}
